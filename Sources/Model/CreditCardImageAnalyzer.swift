@@ -13,16 +13,16 @@ import UIKit
 class CreditCardImageAnalyzer {
     // MARK: - Pattern matching
     // All regex strings have an extra \ to escape the \ symbol
-    
-    private let cardNumberRegex: NSRegularExpression? = try? NSRegularExpression(pattern: "(?:\\d[ ]*?){13,16}")
+
+    private let cardNumberRegex: NSRegularExpression? = try? NSRegularExpression(pattern: "(?:\\d[ ]*){13,19}")
     private let visaQuickReadNumberRegex: NSRegularExpression? = try? NSRegularExpression(pattern: "^[\\/\\[\\]\\|\\\\]?(\\d{4})")
     private let visaQuickReadBoundaryChars: Set<String> = ["\\", "/", "[", "]", "|"]
-    
+
     /// Regex for month/year with 1 capture group for each component
     private let expirationDateRegex: NSRegularExpression? = try? NSRegularExpression(pattern: "(0[1-9]|1[0-2])\\/(\\d{4}|\\d{2})")
-    
+
     // MARK: - Functions
-    
+
     /// Returns a credit card by reading the provided image.
     func analyze(image: CGImage, onSuccess: @escaping (CreditCard) -> Void, onFailure: ((Error?) -> Void)? = nil) {
         let request = VNRecognizeTextRequest { [weak self] request, error in
@@ -38,15 +38,15 @@ class CreditCardImageAnalyzer {
             onFailure?(error)
         }
     }
-    
+
     // MARK: - Private functions
-    
+
     private func analyze(request: VNRequest, onSuccess: (CreditCard) -> Void, onFailure: ((Error?) -> Void)?) {
         guard let results = request.results as? [VNRecognizedTextObservation] else {
             onFailure?(nil)
             return
         }
-        
+
         var cardNumber: String?
         var visaQuickReadNumbers = [String]()
         var cardExpirationDate: (month: Int, year: Int)?
@@ -56,7 +56,7 @@ class CreditCardImageAnalyzer {
                 continue
             }
             let recognizedText = candidate.string
-            
+
             // Always match the first found card number
             if cardNumber == nil,
                let numberMatch = cardNumberMatch(recognizedText) {
@@ -74,7 +74,7 @@ class CreditCardImageAnalyzer {
                 }
             }
         }
-        
+
         // First priority goes to detected traditional card number
         if let cardNumber = cardNumber {
             onSuccess(CreditCard(
@@ -91,7 +91,7 @@ class CreditCardImageAnalyzer {
             onFailure?(nil)
         }
     }
-    
+
     private func cardNumberMatch(_ text: String) -> String? {
         guard let expression = cardNumberRegex,
               let match = expression.firstMatch(in: text, options: [], range: NSRange(location: 0, length: text.count)),
@@ -99,11 +99,11 @@ class CreditCardImageAnalyzer {
               else {
             return nil
         }
-        
+
         return String(text[range])
             .replacingOccurrences(of: " ", with: "")
     }
-    
+
     private func visaQuickReadNumberMatch(_ text: String) -> String? {
         let textRange = NSRange(location: 0, length: text.count)
         guard let expression = visaQuickReadNumberRegex,
@@ -115,13 +115,13 @@ class CreditCardImageAnalyzer {
               else {
             return nil
         }
-        
+
         if text.count == 4 {
             return String(text[range])
         } else {
             let firstIndex = text.index(text.startIndex, offsetBy: 0)
             let fifthIndex = text.index(text.startIndex, offsetBy: 4)
-            
+
             if visaQuickReadBoundaryChars.contains(String(text[firstIndex])) {
                 return String(text[range])
             } else if visaQuickReadBoundaryChars.contains(String(text[fifthIndex])) {
@@ -133,10 +133,10 @@ class CreditCardImageAnalyzer {
                 }
             }
         }
-        
+
         return nil
     }
-    
+
     private func cardExpirationDateMatch(_ text: String) -> (month: Int, year: Int)? {
         let textRange = NSRange(location: 0, length: text.count)
         guard let expression = expirationDateRegex,
@@ -151,7 +151,7 @@ class CreditCardImageAnalyzer {
               else {
             return nil
         }
-        
+
         let monthString = String(text[monthRange])
         var yearString = String(text[yearRange])
         if yearString.count == 2 {
@@ -161,7 +161,7 @@ class CreditCardImageAnalyzer {
            let yearInt = Int(yearString) {
             return (month: monthInt, year: yearInt)
         }
-        
+
         return nil
     }
 }
