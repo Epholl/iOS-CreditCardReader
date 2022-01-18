@@ -14,7 +14,9 @@ class CreditCardImageAnalyzer {
     // MARK: - Pattern matching
     // All regex strings have an extra \ to escape the \ symbol
 
-    private let cardNumberRegex: NSRegularExpression? = try? NSRegularExpression(pattern: "(?:\\d[ ]*){13,19}")
+    private let cardNumberRegex: NSRegularExpression? = try? NSRegularExpression(
+        pattern: "(^KARTEN-NR[:. ]*|^(?![AZ]))(?:\\d[ ]*){13,19}"
+    )
     private let visaQuickReadNumberRegex: NSRegularExpression? = try? NSRegularExpression(pattern: "^[\\/\\[\\]\\|\\\\]?(\\d{4})")
     private let visaQuickReadBoundaryChars: Set<String> = ["\\", "/", "[", "]", "|"]
 
@@ -101,7 +103,8 @@ class CreditCardImageAnalyzer {
         }
 
         return String(text[range])
-            .replacingOccurrences(of: " ", with: "")
+            .filter("0123456789".contains)
+
     }
 
     private func visaQuickReadNumberMatch(_ text: String) -> String? {
